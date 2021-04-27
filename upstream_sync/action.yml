@@ -4,11 +4,9 @@ inputs:
   upstream-repo-url:
     description: 'Upstream Repo'
     required: true
-    default: 'not set'
   upstream-branch:
     description: 'Upstream Repo's branch'
     required: true
-    default: 'not set'
 runs:
     using: composite
     steps:
