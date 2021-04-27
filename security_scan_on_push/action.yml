@@ -3,6 +3,7 @@ description: Run security repo precommit scan on push
 inputs:
 outputs:
 runs:
+    using: composite
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
