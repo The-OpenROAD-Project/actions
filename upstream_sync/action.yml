@@ -5,7 +5,7 @@ inputs:
     description: 'Upstream Repo'
     required: true
   upstream-branch:
-    description: 'Upstream Repo's branch'
+    description: 'Upstream Repo branch'
     required: true
 runs:
     using: composite
