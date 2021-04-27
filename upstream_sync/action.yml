@@ -10,8 +10,6 @@ inputs:
 runs:
     using: composite
     steps:
-        - run echo "${{INPUT_UPSTREAM-REPO-URL}}"
-          shell: bash
         - run: git remote add upstream $INPUT_UPSTREAM-REPO-URL
           shell: bash
         - run: git pull upstream $INPUT_UPSTREAM-BRANCH
