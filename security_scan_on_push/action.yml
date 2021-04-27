@@ -1,9 +1,8 @@
 name: Code Scan
 description: Run security repo precommit scan on push
-on: [push]
-jobs:
-  Explore-GitHub-Actions:
-    runs-on: ubuntu-latest
+inputs:
+outputs:
+runs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
