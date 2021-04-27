@@ -1,0 +1,9 @@
+name: Code Scan
+description: Run security repo precommit scan on push
+runs:
+    using: composite
+    steps:
+        - run: git clone https://github.com/The-OpenROAD-Project/security.git ../security
+          shell: bash
+        - run: ../security/git/hooks/pre-commit.py --local
+          shell: bash
