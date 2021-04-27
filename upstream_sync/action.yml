@@ -12,7 +12,11 @@ runs:
     steps:
         - run: git remote add upstream ${{inputs.upstreamRepoUrl}}
           shell: bash
-        - run: git pull upstream ${{inputs.upstreamBranch}}
+        - run: git fetch upstream ${{inputs.upstreamBranch}}
           shell: bash
         - run: git remote -v
           shell: bash
+        - run: git reset --hard upstream/master
+          shell: bash
+        - run: git push origin master --force
+
