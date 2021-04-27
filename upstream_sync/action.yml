@@ -19,4 +19,5 @@ runs:
         - run: git reset --hard upstream/master
           shell: bash
         - run: git push origin master --force
-
+          shell: bash
+          
