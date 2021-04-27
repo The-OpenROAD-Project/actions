@@ -1,7 +1,5 @@
 name: Code Scan
 description: Run security repo precommit scan on push
-inputs:
-outputs:
 runs:
     using: composite
     steps:
