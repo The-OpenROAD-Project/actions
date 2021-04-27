@@ -4,6 +4,6 @@ runs:
     using: composite
     steps:
         - run: git clone https://The-OpenROAD-Project/security.git ../security
-        shell: bash
+          shell: bash
         - run: ../security/git/hooks/pre-commit.py --local
-        shell: bash
+          shell: bash
