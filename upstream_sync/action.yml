@@ -10,7 +10,7 @@ inputs:
 runs:
     using: composite
     steps:
-        - run: echo "git remote add upstream $INPUT_UPSTREAMREPOURL"
+        - run: echo "git remote add upstream $UPSTREAMREPOURL"
           shell: bash
         - run: git pull upstream $INPUT_UPSTREAMBRANCH
           shell: bash
