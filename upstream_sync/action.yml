@@ -10,9 +10,9 @@ inputs:
 runs:
     using: composite
     steps:
-        - run: echo "git remote add upstream ${{inputs.upstreamRepoUrl}}"
+        - run: git remote add upstream ${{inputs.upstreamRepoUrl}}
           shell: bash
-        - run: echo "git pull upstream ${{inputs.upstreamBranch}}"
+        - run: git pull upstream ${{inputs.upstreamBranch}}
           shell: bash
         - run: git remote -v
           shell: bash
