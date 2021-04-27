@@ -3,7 +3,7 @@ description: Run security repo precommit scan on push
 runs:
     using: composite
     steps:
-        run: git clone https://The-OpenROAD-Project/security.git ../security
+        - run: git clone https://The-OpenROAD-Project/security.git ../security
         shell: bash
-        run: ../security/git/hooks/pre-commit.py --local
+        - run: ../security/git/hooks/pre-commit.py --local
         shell: bash
