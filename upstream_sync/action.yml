@@ -10,9 +10,7 @@ inputs:
 runs:
     using: composite
     steps:
-        - run: set -o xtrace
-          shell: bash
-        - run: git remote add upstream $INPUT_UPSTREAMREPOURL
+        - run: echo "git remote add upstream $INPUT_UPSTREAMREPOURL"
           shell: bash
         - run: git pull upstream $INPUT_UPSTREAMBRANCH
           shell: bash
