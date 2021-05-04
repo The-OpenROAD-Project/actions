@@ -7,7 +7,7 @@ inputs:
   upstreamBranch:
     description: 'Upstream Repo branch'
     required: true
-  worksflowGithubToken:
+  workflowGithubToken:
     description: 'github personal token with repo workflow privs'
     required: false
     default: ''
