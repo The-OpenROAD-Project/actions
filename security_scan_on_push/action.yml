@@ -7,3 +7,5 @@ runs:
           shell: bash
         - run: ../security/git/hooks/pre-commit.py --local
           shell: bash
+        - run: rm -rf ../security
+          shell: bash
