@@ -1,23 +1,50 @@
-name: Code Scan
-description: Run security repo precommit scan on push
+name: upstream_sync
+
+description: >
+  Automatically sync branch from upstream repository.
+
 inputs:
-  upstreamRepoUrl:
-    description: 'Upstream Repo'
-    required: true
+  upstreamRepo:
+    description: Upstream repository slug (owner/repo).
+    default: The-OpenROAD-Project/OpenROAD
   upstreamBranch:
-    description: 'Upstream Repo branch'
+    description: Upstream branch name to update.
+    default: master
+  force:
+    description: Use a force push.
+    default: false
+  deployKey:
+    description: SSH Private "deploy key" which has write access.
     required: true
+
 runs:
-    using: composite
-    steps:
-        - run: git remote add upstream ${{inputs.upstreamRepoUrl}}
-          shell: bash
-        - run: git fetch upstream ${{inputs.upstreamBranch}}
-          shell: bash
-        - run: git remote -v
-          shell: bash
-        - run: git reset --hard upstream/master
-          shell: bash
-        - run: git push origin master --force
-          shell: bash
-          
+  using: composite
+
+  steps:
+
+  - name: Updating '${{ inputs.upstreamBranch }}' from ${{ inputs.upstreamRepo }}
+    env:
+      FORCE: ${{ inputs.force }}
+    shell: bash
+    run: |
+      export GIT_ARGS=''
+      if [[ x$FORCE = 'xtrue' ]]; then
+        export GIT_ARGS=--force
+      fi
+      # Clone a blobless repository and don't bother checking it out.
+      git clone \
+        --filter=blob:none \
+        --no-tags \
+        --no-checkout \
+        --origin upstream \
+        --branch ${{ inputs.upstreamBranch }} \
+        --verbose \
+        https://github.com/${{ inputs.upstreamRepo }}.git \
+        repo
+      cd repo
+      # Start ssh agent and add deploy key.
+      eval $(ssh-agent -s)
+      ssh-add - <<< "${{ inputs.deployKey }}"
+      # Add local repository and push to it.
+      git remote add origin git+ssh://git@github.com/${{ github.repository }}.git
+      git push origin $GIT_ARGS --verbose upstream/${{ inputs.upstreamBranch }}:${{ inputs.upstreamBranch }}
