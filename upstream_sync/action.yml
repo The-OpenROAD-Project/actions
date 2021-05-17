@@ -27,6 +27,9 @@ runs:
       FORCE: ${{ inputs.force }}
     shell: bash
     run: |
+      # Remove known_hosts if it exists.
+      rm -f ~/.ssh/known_hosts
+      # Figure out if we should do a force push
       export GIT_ARGS=''
       if [[ x$FORCE = 'xtrue' ]]; then
         export GIT_ARGS=--force
