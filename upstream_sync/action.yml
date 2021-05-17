@@ -27,6 +27,18 @@ runs:
       FORCE: ${{ inputs.force }}
     shell: bash
     run: |
+      # Configure ssh to ignore host key checking.
+      mkdir -p ~/.ssh
+      chmod 700 ~/.ssh
+      echo "::group::Existing ssh config file"
+      cat ~/.ssh/config || true
+      echo "::endgroup::"
+      cat > ~/.ssh/config << EOF
+      Host *
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+      EOF
+      # Figure out if we should do a force push
       export GIT_ARGS=''
       if [[ x$FORCE = 'xtrue' ]]; then
         export GIT_ARGS=--force
