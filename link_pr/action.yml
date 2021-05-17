@@ -1,0 +1,12 @@
+name: Create a deployment on a pull request.
+
+runs:
+  using: composite
+
+  steps:
+
+  - name: Creating deployment
+    shell: bash
+    env:
+        GITHUB_TOKEN: ${{ github.token }}
+    run: $GITHUB_ACTION_PATH/action.py
