@@ -47,7 +47,7 @@ runs:
       # Clone a blobless repository and don't bother checking it out.
       time git clone \
         $GIT_CLONE_ARGS \
-        --filter=tree:0 \
+        --filter=blob:none \
         --no-tags \
         --origin upstream \
         --branch ${{ inputs.branch }} \
