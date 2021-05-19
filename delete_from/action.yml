@@ -43,6 +43,9 @@ runs:
       eval $(ssh-agent -s)
       ssh-add - <<< "${{ inputs.deployKey }}"
 
+      # Set the defaultBranch to supress noisy hint.
+      git config --global init.defaultBranch main
+
       # Add local repository and push to it.
       rm -rf ${{ inputs.repo }}
       mkdir -p ${{ inputs.repo }}
