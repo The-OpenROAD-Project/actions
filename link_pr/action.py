@@ -45,7 +45,7 @@ def update_deployment():
     enviro = {}
     for j in deployments_json:
         d = dapi.Deployment(**j)
-        if not d.environment.startswith('Staging PR #'):
+        if not d.environment.startswith('Upstream PR #'):
             continue
         if d.environment in enviro:
             if d.updated_at < enviro[d.environment].updated_at:
@@ -63,7 +63,7 @@ def update_deployment():
     print("::endgroup::")
     print()
 
-    pid = f'Staging PR #{upstream.pr}'
+    pid = f'Upstream PR #{upstream.pr}'
 
     create_new = pid not in enviro or enviro[pid].sha != pr_sha
     if create_new:
