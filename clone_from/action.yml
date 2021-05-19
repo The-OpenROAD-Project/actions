@@ -35,7 +35,7 @@ runs:
       git config --global gc.auto 0
       git config --global fetch.recurseSubmodules false
       git config --global protocol.version 2
-      git config --global core.compression 0
+      #git config --global core.compression 0
 
       cat ~/.gitconfig
 
