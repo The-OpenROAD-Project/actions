@@ -52,6 +52,9 @@ runs:
         export GIT_ARGS=--force
       fi
 
+      export GIT_TRACE=1
+      export GIT_CURL_VERBOSE=1
+
       # Add local repository and push to it.
       git remote add origin git+ssh://git@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git
       git push $GIT_ARGS origin --verbose ${{ inputs.branch }}
