@@ -43,7 +43,7 @@ def send_pr():
     prs_json = get_github_json(pr_api_url, preview="groot-preview")
 
     print()
-    print(f"::group::Current pull requests from {staging.slug} on {pr_sha}")
+    print(f"::group::Current pull requests from {staging.slug} for {pr_sha}")
     pprint.pprint(prs_json)
     print("::endgroup::")
     print()
@@ -61,7 +61,7 @@ def send_pr():
             "draft": True,
         }
         r = send_github_json(pr_api_url, "POST", create_pr_json)
-        print(f"::group::Created pull request")
+        print(f"::group::Created pull request from {staging.slug} {staging.branch} to {upstream.slug}")
         pprint.pprint(r)
         print("::endgroup::")
         print()
