@@ -50,6 +50,6 @@ runs:
       rm -rf ${{ inputs.repo }}
       mkdir -p ${{ inputs.repo }}
       cd ${{ inputs.repo }}
-      git init
+      git init --quiet
       git remote add origin git+ssh://git@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git
       git push origin --verbose :${{ inputs.branch }}
