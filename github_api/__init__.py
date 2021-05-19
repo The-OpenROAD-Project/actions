@@ -62,15 +62,19 @@ def toisoformat(s):
             return datetime.isoformat(s) + 'Z'
 
 
+TOKEN_ENV_NAME = 'GITHUB_TOKEN'
+
+
 def github_headers(preview=None, _headers={}):
     if not _headers:
         # Figure out the GitHub access token.
-        access_token = os.environ.get('GITHUB_TOKEN', None)
+        access_token = os.environ.get(TOKEN_ENV_NAME, None)
         if not access_token:
             from . import app_token
             access_token = app_token.get_token()
             if not access_token:
-                raise SystemError('Did not find an access token of `GITHUB_TOKEN`')
+                raise SystemError(
+                    f'Did not find an access token of `{TOKEN_ENV_NAME}`')
         _headers['Authorization'] = 'token ' + access_token
     if preview is None:
         _headers['Accept'] = 'application/vnd.github.v3+json'

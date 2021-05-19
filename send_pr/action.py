@@ -29,11 +29,13 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 
+import github_api
 from github_api import get_github_json, send_github_json
 from github_api import env as genv
 
 
 def send_pr():
+    github_api.TOKEN_ENV_NAME = 'STAGING_GITHUB_TOKEN'
     event_json = genv.get_event_json()
     private, staging, upstream, pr_sha = genv.details(event_json)
 
