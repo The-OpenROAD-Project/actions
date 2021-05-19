@@ -1,0 +1,57 @@
+name: Clone a GitHub repository.
+
+inputs:
+  owner:
+    description: GitHub username who owns the repository.
+    default: ${{ github.event.repository.owner.login }}
+  repo:
+    description: GitHub repo name.
+    default: ${{ github.event.repository.name }}
+  branch:
+    description: Branch to clone.
+    default: ${{ github.head_ref }}
+  checkout:
+    description: Actually checkout the contents of the repository to the disk.
+    default: false
+
+runs:
+  using: composite
+
+  steps:
+
+  - name: Cloning ${{ inputs.slug }}
+    shell: bash
+    env:
+        GH_TOKEN: ${{ github.token }}
+        SLUG: ${{ inputs.owner }}/${{ inputs.repo }}
+    run: |
+      export GIT_TERMINAL_PROMPT=0
+      export GCM_INTERACTIVE=Never
+
+      cd ..
+
+      time rm -rf ${{ inputs.repo }}
+
+      git config --global gc.auto 0
+      git config --global fetch.recurseSubmodules false
+      git config --global protocol.version 2
+      cat ~/.gitconfig
+
+      # Checkout if needed
+      if [[ '${{ inputs.checkout }}' != 'true' ]]; then
+        GIT_CLONE_ARGS="--no-checkout"
+      fi
+
+      # Clone a blobless repository and don't bother checking it out.
+      time git clone \
+        $GIT_CLONE_ARGS \
+        --filter=tree:0 \
+        --no-tags \
+        --origin upstream \
+        --branch ${{ inputs.branch }} \
+        --verbose \
+        https://token:${GH_TOKEN}@github.com/${SLUG}.git
+
+      # Enter cloned repository
+      cd ${{ inputs.repo }}
+      ls -l .

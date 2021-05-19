@@ -1,0 +1,18 @@
+name: Create a new pull request.
+
+outputs:
+  pr:
+    description: Pull request ID number.
+    value: ${{ steps.send_pr.outputs.pr }}
+
+runs:
+  using: composite
+
+  steps:
+
+  - id: send_pr
+    name: Creating PR is needed.
+    shell: bash
+    env:
+        GITHUB_TOKEN: ${{ github.token }}
+    run: $GITHUB_ACTION_PATH/action.py

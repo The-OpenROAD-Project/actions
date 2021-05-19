@@ -1,0 +1,11 @@
+name: Remove label.
+
+runs:
+  using: composite
+
+  steps:
+  - name: Removing label ${{ github.event.label.name }}.
+    shell: bash
+    env:
+        GITHUB_TOKEN: ${{ github.token }}
+    run: $GITHUB_ACTION_PATH/action.py
