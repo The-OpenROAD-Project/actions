@@ -41,6 +41,13 @@ Steps for using are;
             deployKey: ${{ secrets.STAGING_DEPLOY_KEY }}
     ```
 
+## [`delete_from`](./delete_from)
+
+This action deletes a branch from a GitHub repository using ssh with
+[a deploy key (with write access)](https://docs.github.com/en/developers/overview/managing-deploy-keys#deploy-keys).
+
+Follow the setups in `push_to` action to set up a deploy key.
+
 ## [`remove_label`](./remove_label)
 
 Removes a label from a pull request.
