@@ -1,0 +1,22 @@
+name: Workout configuration automatically.
+
+runs:
+  using: composite
+
+  steps:
+
+  - name: Configuring environment.
+    shell: bash
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    run: |
+      echo
+      (cd $GITHUB_ACTION_PATH/..; python3 -m github_api.env)
+
+      (cd $GITHUB_ACTION_PATH/..; python3 -m github_api.env --quiet) >> $GITHUB_ENV
+
+      echo
+      echo "::group::GITHUB_ENV"
+      cat $GITHUB_ENV
+      echo "::endgroup::"
+      echo

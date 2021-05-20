@@ -18,11 +18,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+import codecs
 import dataclasses
+import io
 import json
 import os
 import pathlib
 import pprint
+import sys
 
 from typing import Optional
 
@@ -50,7 +53,7 @@ class Repo:
         return f"https://github.com/{self.slug}/pull/{self.pr}"
 
 
-def get_event_json():
+def get_event_json(debug=(os.environ.get('ACTIONS_STEP_DEBUG', None)=='true')):
     event_json_path = os.environ.get('GITHUB_EVENT_PATH', None)
     if not event_json_path:
         raise SystemError("Did not find GITHUB_EVENT_PATH environment value.")
@@ -62,19 +65,20 @@ def get_event_json():
     with open(event_json_path) as f:
         event_json = json.load(f)
 
-    print()
-    print("::group::Event JSON raw")
-    print(open(event_json_path).read())
-    print("::endgroup::")
-    print()
-    print("::group::Event JSON details")
-    pprint.pprint(event_json)
-    print("::endgroup::")
-    print()
+    if debug:
+        print()
+        print("::group::Event JSON raw")
+        print(open(event_json_path).read())
+        print("::endgroup::")
+        print()
+        print("::group::Event JSON details")
+        pprint.pprint(event_json)
+        print("::endgroup::")
+        print(flush=True)
     return event_json
 
 
-def details(event_json):
+def details(event_json=None):
     # As there are three repositories involved here, things can get a bit
     # confusing.
     #
@@ -88,17 +92,57 @@ def details(event_json):
     #
     #  * `upstream_.*` is the **public** repository we are going to be sending
     #    the pull request **to**.
+
+    # Support a "rot13 encoded" STAGING_OWNER, UPSTREAM_OWNER and
+    # UPSTREAM_BRANCH values so it isn't masked in the logs.
+    if 'ROT13_STAGING_OWNER' in os.environ:
+        os.environ['STAGING_OWNER'] = codecs.decode(
+            os.environ.get('ROT13_STAGING_OWNER'), 'rot_13')
+    if 'ROT13_UPSTREAM_OWNER' in os.environ:
+        os.environ['UPSTREAM_OWNER'] = codecs.decode(
+            os.environ.get('ROT13_UPSTREAM_OWNER'), 'rot_13')
+    if 'ROT13_UPSTREAM_BRANCH' in os.environ:
+        os.environ['UPSTREAM_BRANCH'] = codecs.decode(
+            os.environ.get('ROT13_UPSTREAM_BRANCH'), 'rot_13')
+
+    if event_json:
+        if 'pull_request' in event_json:
+            repo_json = event_json['pull_request']['head']['repo']
+            branch = event_json['pull_request']['head']['ref']
+            pr = event_json['pull_request']['number']
+            pr_sha = event_json['pull_request']['head']['sha']
+        else:
+            repo_json = event_json['repository']
+            branch = event_json['ref']
+            pr = None
+            pr_sha = None
+
+        private_defaults = Repo(
+            owner = repo_json['owner']['login'],
+            repo = repo_json['name'],
+            branch = branch,
+            pr = pr,
+        )
+    else:
+        private_defaults = Repo(
+            owner = None,
+            repo = None,
+            branch = None,
+            pr = None,
+        )
+
     private = Repo(
         owner = os.environ.get(
             'PRIVATE_OWNER',
-            event_json['pull_request']['head']['repo']['owner']['login']),
+            private_defaults.owner),
         repo = os.environ.get(
             'PRIVATE_REPO',
-            event_json['pull_request']['head']['repo']['name']),
+            private_defaults.repo),
         branch = os.environ.get(
             'PRIVATE_BRANCH',
-            event_json['pull_request']['head']['ref']),
-        pr = event_json["pull_request"]["number"])
+            private_defaults.branch),
+        pr = private_defaults.pr,
+    )
 
     repo_json = get_github_json(f'https://api.github.com/repos/{private.slug}')
     repo_default_name = repo_json['parent']['name']
@@ -106,19 +150,19 @@ def details(event_json):
     staging = Repo(
         owner = os.environ.get(
             'STAGING_OWNER',
-            'The-OpenROAD-Project-staging'),
+            None),
         repo = os.environ.get(
             'STAGING_REPO',
             repo_default_name),
         branch = os.environ.get(
             'STAGING_BRANCH',
-            event_json['pull_request']['head']['ref']),
+            private.branch),
     )
 
     upstream = Repo(
         owner = os.environ.get(
             'UPSTREAM_OWNER',
-            'The-OpenROAD-Project'),
+            None),
         repo = os.environ.get(
             'UPSTREAM_REPO',
             repo_default_name),
@@ -135,10 +179,37 @@ def details(event_json):
     print(" Staging:", staging.slug,  "@", staging.branch,  "(", staging.branch_url,  ")")
     print("Upstream:", upstream.slug, "@", upstream.branch, "(", upstream.branch_url, ")")
     print()
-    pr_sha = event_json['pull_request']['head']['sha']
     pr_sha_url = f"https://github.com/{private.slug}/commits/{pr_sha}"
     print()
     print(" Pull request @", pr_sha, "(", pr_sha_url, ")")
     print()
 
     return (private, staging, upstream, pr_sha)
+
+
+def main(args):
+    sys_stdout = sys.stdout
+    if '--quiet' in args:
+        args.remove('--quiet')
+        sys.stdout = io.StringIO()
+    event_json = get_event_json(sys_stdout == sys.stdout)
+    private, staging, upstream, pr_sha = details(event_json)
+    if args:
+        for a in args:
+            print(eval(a), file=sys_stdout)
+    else:
+        print(f"""
+PRIVATE_OWNER={private.owner}
+PRIVATE_REPO={private.repo}
+PRIVATE_BRANCH={private.branch}
+STAGING_OWNER={staging.owner}
+STAGING_REPO={staging.repo}
+STAGING_BRANCH={staging.branch}
+UPSTREAM_OWNER={upstream.owner}
+UPSTREAM_REPO={upstream.repo}
+UPSTREAM_BRANCH={upstream.branch}
+""".strip(), file=sys_stdout)
+
+
+if __name__ == "__main__":
+    sys.exit(main(list(sys.argv[1:])))
