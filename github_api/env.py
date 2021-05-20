@@ -78,6 +78,19 @@ def get_event_json(debug=(os.environ.get('ACTIONS_STEP_DEBUG', None)=='true')):
     return event_json
 
 
+def get_repo_default_name(key, private, _cache={}):
+    if key in os.environ:
+        return os.environ[key]
+
+    if key not in _cache:
+        repo_json = get_github_json(f'https://api.github.com/repos/{private.slug}')
+        if 'parent' in repo_json:
+            _cache[key] = repo_json['parent']['name']
+        else:
+            _cache[key] = repo_json['name']
+    return _cache[key]
+
+
 def details(event_json=None):
     # As there are three repositories involved here, things can get a bit
     # confusing.
@@ -144,16 +157,13 @@ def details(event_json=None):
         pr = private_defaults.pr,
     )
 
-    repo_json = get_github_json(f'https://api.github.com/repos/{private.slug}')
-    repo_default_name = repo_json['parent']['name']
-
     staging = Repo(
         owner = os.environ.get(
             'STAGING_OWNER',
             None),
-        repo = os.environ.get(
+        repo = get_repo_default_name(
             'STAGING_REPO',
-            repo_default_name),
+            private),
         branch = os.environ.get(
             'STAGING_BRANCH',
             private.branch),
@@ -163,9 +173,9 @@ def details(event_json=None):
         owner = os.environ.get(
             'UPSTREAM_OWNER',
             None),
-        repo = os.environ.get(
+        repo = get_repo_default_name(
             'UPSTREAM_REPO',
-            repo_default_name),
+            private),
         branch = os.environ.get(
             'UPSTREAM_BRANCH',
             'master'),
