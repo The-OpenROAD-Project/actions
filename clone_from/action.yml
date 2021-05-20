@@ -45,6 +45,7 @@ runs:
       fi
 
       # Clone a blobless repository and don't bother checking it out.
+      set -x
       time git clone \
         $GIT_CLONE_ARGS \
         --filter=blob:none \
@@ -53,6 +54,7 @@ runs:
         --branch ${{ inputs.branch }} \
         --verbose \
         https://token:${GH_TOKEN}@github.com/${SLUG}.git
+      set +x
 
       # Enter cloned repository
       cd ${{ inputs.repo }}
