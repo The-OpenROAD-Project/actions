@@ -10,8 +10,8 @@ inputs:
   branch:
     description: Branch to push.
     required: true
-  deployKey:
-    description: SSH private "deploy key" which has write access to staging repository.
+  deployToken:
+    description: GitHub Token that has write access to staging repository.
     required: true
 
 runs:
@@ -23,25 +23,10 @@ runs:
     shell: bash
     run: |
 
-      if [[ -z "${{ inputs.owner }}"     ]]; then echo "Missing owner value!"; exit 1; fi
-      if [[ -z "${{ inputs.repo }}"      ]]; then echo "Missing repo value!"; exit 1; fi
-      if [[ -z "${{ inputs.branch }}"    ]]; then echo "Missing branch value!"; exit 1; fi
-      if [[ -z "${{ inputs.deployKey }}" ]]; then echo "Missing deployKey value!"; exit 1; fi
-
-      # Configure ssh to ignore host key checking.
-      rm -rf ~/.ssh
-      mkdir -p ~/.ssh
-      chmod 700 ~/.ssh
-
-      cat > ~/.ssh/config << EOF
-      Host *
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-      EOF
-
-      # Start ssh agent and add deploy key.
-      eval $(ssh-agent -s)
-      ssh-add - <<< "${{ inputs.deployKey }}"
+      if [[ -z "${{ inputs.owner }}"       ]]; then echo "Missing owner value!";       exit 1; fi
+      if [[ -z "${{ inputs.repo }}"        ]]; then echo "Missing repo value!";        exit 1; fi
+      if [[ -z "${{ inputs.branch }}"      ]]; then echo "Missing branch value!";      exit 1; fi
+      if [[ -z "${{ inputs.deployToken }}" ]]; then echo "Missing deployToken value!"; exit 1; fi
 
       # Set the defaultBranch to supress noisy hint.
       git config --global init.defaultBranch main
@@ -51,5 +36,5 @@ runs:
       mkdir -p ${{ inputs.repo }}
       cd ${{ inputs.repo }}
       git init --quiet
-      git remote add origin git+ssh://git@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git
+      git remote add origin https://token:${{ inputs.deployToken }}@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git
       git push origin --verbose :${{ inputs.branch }}
