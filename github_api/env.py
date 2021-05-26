@@ -38,6 +38,7 @@ class Repo:
     repo: str
     branch: str
     pr: Optional[int] = None
+    sender: Optional[str] = None
 
     @property
     def slug(self):
@@ -51,6 +52,9 @@ class Repo:
     def pr_url(self):
         assert self.pr is not None, self
         return f"https://github.com/{self.slug}/pull/{self.pr}"
+
+    def as_dict(self):
+        return dataclasses.asdict(self)
 
 
 def get_event_json(debug=(os.environ.get('ACTIONS_STEP_DEBUG', None)=='true')):
@@ -91,6 +95,14 @@ def get_repo_default_name(key, private, _cache={}):
     return _cache[key]
 
 
+def details_from_json(data):
+    private  = Repo(**data['private'])
+    staging  = Repo(**data['staging'])
+    upstream = Repo(**data['upstream'])
+    pr_sha   = data['pr_sha']
+    return (private, staging, upstream, pr_sha)
+
+
 def details(event_json=None):
     # As there are three repositories involved here, things can get a bit
     # confusing.
@@ -124,17 +136,20 @@ def details(event_json=None):
             branch = event_json['pull_request']['head']['ref']
             pr = event_json['pull_request']['number']
             pr_sha = event_json['pull_request']['head']['sha']
+            sender = event_json['pull_request']['user']['login']
         else:
             repo_json = event_json['repository']
             branch = event_json['ref']
             pr = None
             pr_sha = None
+            sender = event_json['sender']['login']
 
         private_defaults = Repo(
             owner = repo_json['owner']['login'],
             repo = repo_json['name'],
             branch = branch,
             pr = pr,
+            sender = sender,
         )
     else:
         private_defaults = Repo(
@@ -155,6 +170,7 @@ def details(event_json=None):
             'PRIVATE_BRANCH',
             private_defaults.branch),
         pr = private_defaults.pr,
+        sender = private_defaults.sender,
     )
 
     staging = Repo(
@@ -189,9 +205,7 @@ def details(event_json=None):
     print(" Staging:", staging.slug,  "@", staging.branch,  "(", staging.branch_url,  ")")
     print("Upstream:", upstream.slug, "@", upstream.branch, "(", upstream.branch_url, ")")
     print()
-    pr_sha_url = f"https://github.com/{private.slug}/commits/{pr_sha}"
-    print()
-    print(" Pull request @", pr_sha, "(", pr_sha_url, ")")
+    print(" Private Pull request @", pr_sha, "(", private.pr_url, ")", "created by", private.sender)
     print()
 
     return (private, staging, upstream, pr_sha)

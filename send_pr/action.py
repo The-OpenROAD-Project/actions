@@ -23,7 +23,9 @@ import json
 import os
 import pathlib
 import pprint
+import requests
 import sys
+import urllib
 
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -35,51 +37,37 @@ from github_api import env as genv
 
 
 def send_pr():
-    github_api.TOKEN_ENV_NAME = 'STAGING_GITHUB_TOKEN'
     event_json = genv.get_event_json()
     private, staging, upstream, pr_sha = genv.details(event_json)
+    assert private.sender is not None, (private, staging, upstream)
 
-    # Figure out if there are any pull requests associated with the sha at the
-    # moment.
-    pr_api_url = f'https://api.github.com/repos/{staging.slug}/commits/{pr_sha}/pulls'
-    prs_json = get_github_json(pr_api_url, preview="groot-preview")
+    data = {
+        'event_json': event_json,
+        'env': {
+            'private': private.as_dict(),
+            'staging': staging.as_dict(),
+            'upstream': upstream.as_dict(),
+            'pr_sha': pr_sha,
+        },
+    }
 
     print()
-    print(f"::group::Current pull requests from {staging.slug} for {pr_sha}")
-    pprint.pprint(prs_json)
+    print("::group::Sending JSON Data")
+    print(json.dumps(data))
     print("::endgroup::")
     print()
 
-    if not prs_json:
-        # Need to create a new pull request.
-        pr_api_url = f'https://api.github.com/repos/{upstream.slug}/pulls'
-
-        create_pr_json = {
-            "base": upstream.branch,
-            "head": f"{staging.owner}:{staging.branch}",
-            "title": event_json["pull_request"]["title"],
-            "body": event_json["pull_request"]["body"],
-            "maintainer_can_modify": True,
-            "draft": True,
-        }
-        r = send_github_json(pr_api_url, "POST", create_pr_json)
-        print(f"::group::Created pull request from {staging.slug} {staging.branch} to {upstream.slug}")
-        pprint.pprint(r)
-        print("::endgroup::")
-        print()
-        prs_json.append(r)
-    else:
-        print()
-        print("Pull request already existed!")
-        print()
-
-    upstream.pr = prs_json[-1]["number"]
+    pr_json = requests.post(
+        url='https://pr.gha.openroad.tools/send',
+        json=data,
+    ).json()
 
     print()
-    print(" Private PR:", private.pr, private.pr_url)
-    print("Upstream PR:", upstream.pr, upstream.pr_url)
-
-    print("::set-output name=pr::"+str(upstream.pr))
+    print("::group::Response JSON Data")
+    print(json.dumps(pr_json))
+    print("::endgroup::")
+    print()
+    print("::set-output name=pr::"+str(pr_json['number']))
 
     return
 
