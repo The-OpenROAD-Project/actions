@@ -1,4 +1,4 @@
-name: Clone a GitHub repository.
+name: Clone from a GitHub repository.
 
 inputs:
   owner:
@@ -19,18 +19,20 @@ runs:
 
   steps:
 
-  - name: Cloning ${{ inputs.slug }}
+  - name: Cloning ${{ inputs.branch }} from ${{ inputs.owner }}/${{ inputs.repo }}
     shell: bash
-    env:
-        GH_TOKEN: ${{ github.token }}
-        SLUG: ${{ inputs.owner }}/${{ inputs.repo }}
     run: |
       export GIT_TERMINAL_PROMPT=0
       export GCM_INTERACTIVE=Never
 
+      if [[ -z "${{ inputs.owner }}"       ]]; then echo "Missing owner value!";       exit 1; fi
+      if [[ -z "${{ inputs.repo }}"        ]]; then echo "Missing repo value!";        exit 1; fi
+      if [[ -z "${{ inputs.branch }}"      ]]; then echo "Missing branch value!";      exit 1; fi
+      if [[ -z "${{ inputs.checkout }}"    ]]; then echo "Missing checkout value!";    exit 1; fi
+
       cd ..
 
-      time rm -rf ${{ inputs.repo }}
+      time rm -rf "${{ inputs.repo }}"
 
       git config --global gc.auto 0
       git config --global fetch.recurseSubmodules false
@@ -40,22 +42,23 @@ runs:
       cat ~/.gitconfig
 
       # Checkout if needed
-      if [[ '${{ inputs.checkout }}' != 'true' ]]; then
-        GIT_CLONE_ARGS="--no-checkout"
+      export GIT_ARGS=''
+      if [[ "x${{ inputs.checkout }}" != 'xtrue' ]]; then
+        export GIT_ARGS="--no-checkout"
       fi
 
-      # Clone a blobless repository and don't bother checking it out.
+      # Clone a blobless repository.
       set -x
       time git clone \
-        $GIT_CLONE_ARGS \
+        $GIT_ARGS \
         --filter=blob:none \
         --no-tags \
         --origin upstream \
-        --branch ${{ inputs.branch }} \
+        --branch "${{ inputs.branch }}" \
         --verbose \
-        https://token:${GH_TOKEN}@github.com/${SLUG}.git
+        "https://token:${{ github.token }}@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git"
       set +x
 
       # Enter cloned repository
-      cd ${{ inputs.repo }}
+      cd "${{ inputs.repo }}"
       ls -l .

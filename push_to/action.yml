@@ -1,9 +1,9 @@
-name: Push to repository.
+name: Push to a GitHub repository.
 
 inputs:
   owner:
     description: GitHub username who owns the repository.
-    default: ${{ github.event.repository.owner.name }}
+    default: ${{ github.event.repository.owner.login }}
   repo:
     description: GitHub repo name.
     default: ${{ github.event.repository.name }}
@@ -22,21 +22,31 @@ runs:
 
   steps:
 
-  - name: Pushing ${{ inputs.branch }} to ${{ inputs.slug }}
+  - name: Pushing ${{ inputs.branch }} from ${{ inputs.owner }}/${{ inputs.repo }}
     shell: bash
     run: |
+      export GIT_TERMINAL_PROMPT=0
+      export GCM_INTERACTIVE=Never
 
       if [[ -z "${{ inputs.owner }}"       ]]; then echo "Missing owner value!";       exit 1; fi
       if [[ -z "${{ inputs.repo }}"        ]]; then echo "Missing repo value!";        exit 1; fi
       if [[ -z "${{ inputs.branch }}"      ]]; then echo "Missing branch value!";      exit 1; fi
+      if [[ -z "${{ inputs.force }}"       ]]; then echo "Missing force value!";       exit 1; fi
       if [[ -z "${{ inputs.deployToken }}" ]]; then echo "Missing deployToken value!"; exit 1; fi
 
       # Figure out if we should do a force push
       export GIT_ARGS=''
-      if [[ x${{ inputs.force }} = 'xtrue' ]]; then
+      if [[ "x${{ inputs.force }}" = 'xtrue' ]]; then
         export GIT_ARGS=--force
       fi
 
       # Add local repository and push to it.
-      git remote add origin https://token:${{ inputs.deployToken }}@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git
-      git push $GIT_ARGS origin --verbose ${{ inputs.branch }}
+      git remote add origin "https://token:${{ inputs.deployToken }}@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git"
+      set -x
+      time git push \
+        $GIT_ARGS \
+        origin \
+        --verbose \
+        "${{ inputs.branch }}"
+      set +x
+
