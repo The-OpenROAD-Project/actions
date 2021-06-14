@@ -58,4 +58,18 @@ runs:
 
       # Enter cloned repository
       cd ${{ inputs.repo }}
+      echo
+      echo "git status"
+      echo "-------------------------------------"
+      git status
+      echo "-------------------------------------"
+      echo
+      echo "git branch -v"
+      echo "-------------------------------------"
+      git branch -v -a
+      echo "-------------------------------------"
+      echo
+      echo "Contents"
+      echo "-------------------------------------"
       ls -l .
+      echo "-------------------------------------"
