@@ -39,4 +39,5 @@ runs:
 
       # Add local repository and push to it.
       git remote add origin https://token:${{ inputs.deployToken }}@github.com/${{ inputs.owner }}/${{ inputs.repo }}.git
-      git push $GIT_ARGS origin --verbose ${{ inputs.branch }}
+      git fetch origin
+      git push $GIT_ARGS origin --verbose --no-recurse-submodules ${{ inputs.branch }}
