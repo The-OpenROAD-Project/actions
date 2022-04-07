@@ -44,6 +44,7 @@ runs:
         export GIT_ARGS=--force
       fi
       # Clone a blobless repository and don't bother checking it out.
+      echo "::group::Clone repo"
       rm -rf repo
       git clone \
         --filter=blob:none \
@@ -55,10 +56,14 @@ runs:
         https://github.com/${{ inputs.upstreamRepo }}.git \
         repo
       cd repo
+      echo "::endgroup::"
       # Start ssh agent and add deploy key.
       SSH_AGENT_PID=$(eval $(ssh-agent -s) | awk '{print $3}')
+      sleep 1
       ssh-add - <<< "${{ inputs.deployKey }}"
       # Add local repository and push to it.
+      echo "::group::Push repo"
       git remote add origin git+ssh://git@github.com/${{ github.repository }}.git
       git push origin $GIT_ARGS --verbose upstream/${{ inputs.upstreamBranch }}:${{ inputs.upstreamBranch }}
+      echo "::endgroup::"
       kill $SSH_AGENT_PID
