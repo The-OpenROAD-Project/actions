@@ -58,8 +58,7 @@ runs:
       cd repo
       echo "::endgroup::"
       # Start ssh agent and add deploy key.
-      SSH_AGENT_PID=$(eval $(ssh-agent -s) | awk '{print $3}')
-      sleep 1
+      eval $(ssh-agent -s)
       ssh-add - <<< "${{ inputs.deployKey }}"
       # Add local repository and push to it.
       echo "::group::Push repo"
