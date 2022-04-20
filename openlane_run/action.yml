@@ -17,7 +17,7 @@ inputs:
     default: .github/openlane-stable-tag
   tools_list:
     description: List of the tools to update separated by a space. Example "openroad_app magic".
-    default: None
+    default: ''
 
 runs:
   using: composite
@@ -46,7 +46,7 @@ runs:
         git switch -c "$GIT_SHA" "$GIT_SHA"
         # if we are updating any tool, we need to make sure we will use the
         # newly generated docker image
-        if [[ "${{ inputs.tools_list }}" != "None" ]]; then
+        if [[ "${{ inputs.tools_list }}" != "" ]]; then
           GIT_SHA=current
         fi
         echo "OPENLANE_DOCKER_TAG=${GIT_SHA}" >> $GITHUB_ENV
@@ -55,7 +55,7 @@ runs:
         echo '::endgroup::'
 
     - shell: bash
-      if: ${{ inputs.tools_list  != 'None' }}
+      if: ${{ inputs.tools_list }}
       run: |
         echo '::group::Update each tool hash'
         for tool in ${{ inputs.tools_list }}
@@ -68,15 +68,15 @@ runs:
         do
           make -C docker PDK_ROOT=${{ inputs.pdk_path }} "build-${tool}"
         done
-        echo '::endgroup::'
-        echo '::group::Build OpenLane docker image with new tool binary'
-        make -C docker openlane
-        echo '::endgroup::'
 
     - shell: bash
       run: |
         echo '::group::Get PDKs'
         make pdk
+        echo '::endgroup::'
+        echo '::endgroup::'
+        echo '::group::Get OpenLane docker'
+        make -C docker get-openlane
         echo '::endgroup::'
         echo '::group::Run design using OpenLane'
         make TEST_DESIGN=gha_design test
