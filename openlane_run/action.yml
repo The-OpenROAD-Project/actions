@@ -76,7 +76,7 @@ runs:
         echo '::endgroup::'
         echo '::endgroup::'
         echo '::group::Get OpenLane docker'
-        make -C docker get-openlane
+        make get-openlane
         echo '::endgroup::'
         echo '::group::Run design using OpenLane'
         make TEST_DESIGN=gha_design test
