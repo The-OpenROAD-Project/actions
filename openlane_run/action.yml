@@ -1,0 +1,120 @@
+name: Run design with OpenLane.
+
+description: >
+  The goal of this action is to run a given design through the OpenLane flow
+  using a given tag. Optionally a PR can be created to update a stable tag
+  file stored in the repository.
+
+inputs:
+  ol_tag:
+    description: OpenLane tag. You can set to ol_tag_file to use the value from the input.
+    default: master
+  update_tag:
+    description: If the test is successful update stable tag pointed by the ol_tag_file input.
+    default: false
+  ol_tag_file:
+    description: File where to store the new OpenLane tag
+    default: .github/openlane-stable-tag
+  tools_list:
+    description: List of the tools to update separated by a space. Example "openroad_app magic".
+    default: ''
+
+runs:
+  using: composite
+  steps:
+
+    - uses: actions/checkout@v3
+      with:
+        repository: The-OpenROAD-Project/OpenLane
+        fetch-depth: 0
+
+    - uses: actions/checkout@v3
+      with:
+        path: designs/gha_design
+
+    - shell: bash
+      run: |
+        echo '::group::Export variables to use with OpenLane Makefile'
+        if [[ "${{ inputs.ol_tag }}" == "ol_tag_file" ]]; then
+          GIT_SHA="$(cat designs/gha_design/${{ inputs.ol_tag_file }})"
+        elif [[ "${{ inputs.ol_tag }}" == "master" ]]; then
+          GIT_SHA="$(git describe --exact-match --tags $(git rev-list --tags --max-count=1))"
+        else
+          GIT_SHA=${{ inputs.ol_tag }}
+        fi
+        echo "Checkout correct branch: $GIT_SHA"
+        git switch -c "$GIT_SHA" "$GIT_SHA"
+        # if we are updating any tool, we need to make sure we will use the
+        # newly generated docker image
+        if [[ "${{ inputs.tools_list }}" != "" ]]; then
+          GIT_SHA=current
+        fi
+        echo "OPENLANE_DOCKER_TAG=${GIT_SHA}" >> $GITHUB_ENV
+        echo "OPENLANE_IMAGE_NAME=efabless/openlane:${GIT_SHA}" >> $GITHUB_ENV
+        echo "PDK_ROOT=${PWD}/pdks" >> $GITHUB_ENV
+        echo '::endgroup::'
+
+    - shell: bash
+      if: ${{ inputs.tools_list }}
+      run: |
+        echo '::group::Update each tool hash'
+        for tool in ${{ inputs.tools_list }}
+        do
+          python3 .github/scripts/update_tools.py "${tool}"
+        done
+        echo '::endgroup::'
+        echo '::group::Build docker image for each updated tool'
+        for tool in ${{ inputs.tools_list }}
+        do
+          make -C docker PDK_ROOT=${{ inputs.pdk_path }} "build-${tool}"
+        done
+
+    - shell: bash
+      run: |
+        echo '::group::Get PDKs'
+        make pdk
+        echo '::endgroup::'
+        echo '::endgroup::'
+        echo '::group::Get OpenLane docker'
+        make -C docker get-openlane
+        echo '::endgroup::'
+        echo '::group::Run design using OpenLane'
+        make TEST_DESIGN=gha_design test
+        echo '::endgroup::'
+
+    - shell: bash
+      id: tag_check
+      if: ${{ inputs.update_tag  }}
+      run: |
+        echo '::group::Update OpenLane stable tag file'
+        if [[ "$(cat designs/gha_design/${{ inputs.ol_tag_file }})" == "${OPENLANE_DOCKER_TAG}" ]]; then
+          echo '::set-output name=tag_changed::false'
+          echo 'Did not update tag file.'
+        else
+          echo "${OPENLANE_DOCKER_TAG}" > designs/gha_design/${{ inputs.ol_tag_file }}
+          echo '::set-output name=tag_changed::true'
+          echo 'Did update tag file, can create PR.'
+        fi
+        echo '::endgroup::'
+
+    - uses: peter-evans/create-pull-request@v4
+      id: cpr
+      if: ${{ inputs.update_tag && steps.tag_check.outputs.tag_changed }}
+      with:
+        path: designs/gha_design
+        add-path: ${{ inputs.ol_tag_file }}
+        title: '[BOT] Update OpenLane stable tag.'
+        body: |
+          This is an automated PR.
+          See the individual commits for details.
+        commit-message: |
+          [BOT] Update OpenLane stable tag -> ${{ env.OPENLANE_DOCKER_TAG }}
+        branch: update-openlane-tag
+        draft: true
+        delete-branch: true
+
+    - shell: bash
+      if: ${{ steps.cpr.outputs.pull-request-number }}
+      run: |
+        echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+        echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
