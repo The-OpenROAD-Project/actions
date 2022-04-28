@@ -74,11 +74,12 @@ using a given tag. Optionally a PR can be created to update a stable tag
 file stored in the repository.
 Arguments:
 -   `ol_tag` [optional, default: `master`]: OpenLane tag. You can set to
-    `ol_tag_file` to use the value from the input.
+    `ol_tag_file` to use the value from the file content.
 -   `update_tag` [optional, default: `false`]: if the test is successful
     update stable tag pointed by the `ol_tag_file` input.
 -   `ol_tag_file` [optional, default: `.github/openlane-stable-tag`]: File
     where to store stable OpenLane tag. The file must exists before running
     with this feature.
--   `tools_list` [optional, default: `''`]: List of the tools to update
-    separated by a space. Example: "openroad_app magic".
+-   `tools_list` [optional, default: `''`]: List of tools to update to the
+    latest version. Multiple values are separated by a space, e.g.,
+    "openroad_app magic".
