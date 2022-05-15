@@ -102,7 +102,7 @@ runs:
       if: ${{ inputs.update_tag && steps.tag_check.outputs.tag_changed }}
       with:
         path: designs/gha_design
-        add-path: ${{ inputs.ol_tag_file }}
+        add-paths: ${{ inputs.ol_tag_file }}
         title: '[BOT] Update OpenLane stable tag.'
         body: |
           This is an automated PR.
