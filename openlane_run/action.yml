@@ -84,7 +84,7 @@ runs:
 
     - shell: bash
       id: tag_check
-      if: ${{ inputs.update_tag  }}
+      if: ${{ inputs.update_tag  == 'true' }}
       run: |
         echo '::group::Update OpenLane stable tag file'
         if [[ "$(cat designs/gha_design/${{ inputs.ol_tag_file }})" == "${OPENLANE_DOCKER_TAG}" ]]; then
@@ -99,7 +99,7 @@ runs:
 
     - uses: peter-evans/create-pull-request@v4
       id: cpr
-      if: ${{ inputs.update_tag && steps.tag_check.outputs.tag_changed }}
+      if: ${{ inputs.update_tag == 'true' && steps.tag_check.outputs.tag_changed == 'true' }}
       with:
         path: designs/gha_design
         add-paths: ${{ inputs.ol_tag_file }}
