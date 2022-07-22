@@ -24,8 +24,7 @@ import json
 import os
 import requests
 
-
-from datetime import datetime
+import datetime as dt
 
 
 def fromisoformat(s):
@@ -41,46 +40,70 @@ def fromisoformat(s):
         return None
     if s.endswith('Z'):
         s = s[:-1]+'+00:00'
-    return datetime.fromisoformat(s)
+    return dt.datetime.fromisoformat(s)
 
 
 def toisoformat(s):
     """
 
-    >>> toisoformat(datetime(2021, 5, 3, 1, 48, 37, tzinfo=timezone.utc))
+    >>> toisoformat(dt.datetime(2021, 5, 3, 1, 48, 37, tzinfo=dt.timezone.utc))
     '2021-05-03T01:48:37Z'
-    >>> toisoformat(datetime(2021, 5, 3, 1, 48, 37, tzinfo=None))
+    >>> toisoformat(dt.datetime(2021, 5, 3, 1, 48, 37, tzinfo=None))
     '2021-05-03T01:48:37Z'
     """
     if s is None:
         return None
     else:
-        assert s.tzinfo in (timezone.utc, None), (s.tzinfo, repr(s), str(s))
-        if s.tzinfo == timezone.utc:
-            return datetime.isoformat(s).replace('+00:00', 'Z')
+        assert s.tzinfo in (dt.timezone.utc, None), (s.tzinfo, repr(s), str(s))
+        if s.tzinfo == dt.timezone.utc:
+            return dt.datetime.isoformat(s).replace('+00:00', 'Z')
         elif s.tzinfo is None:
-            return datetime.isoformat(s) + 'Z'
+            return dt.datetime.isoformat(s) + 'Z'
 
 
 TOKEN_ENV_NAME = 'GITHUB_TOKEN'
 
 
-def github_headers(preview=None, _headers={}):
-    if not _headers:
-        # Figure out the GitHub access token.
-        access_token = os.environ.get(TOKEN_ENV_NAME, None)
+_ACCESS_TOKEN_CACHE = {}
+
+
+def get_access_token(slug=None):
+    if slug not in _ACCESS_TOKEN_CACHE:
+        env_token = os.environ.get(TOKEN_ENV_NAME, None)
+
+        if slug is None:
+            if env_token is not None:
+                return env_token
+            else:
+                slug = os.environ.get('GITHUB_REPOSITORY')
+
+        assert slug is not None, slug
+
+        from . import app_token
+        access_token = app_token.get_token(slug=slug)
         if not access_token:
-            from . import app_token
-            access_token = app_token.get_token()
-            if not access_token:
-                raise SystemError(
-                    f'Did not find an access token of `{TOKEN_ENV_NAME}`')
-        _headers['Authorization'] = 'token ' + access_token
+            raise SystemError(
+                f'Did not find an access token of `{TOKEN_ENV_NAME}`')
+
+        _ACCESS_TOKEN_CACHE[slug] = access_token
+
+    assert _ACCESS_TOKEN_CACHE[slug] is not None, (slug, _ACCESS_TOKEN_CACHE)
+    return _ACCESS_TOKEN_CACHE[slug]
+
+
+def github_headers(preview=None, slug=None, access_token=None):
+    if access_token is None:
+        access_token = get_access_token(slug)
+
+    h = {}
+    if access_token:
+       h['Authorization'] = 'token ' + access_token
     if preview is None:
-        _headers['Accept'] = 'application/vnd.github.v3+json'
+       h['Accept'] = 'application/vnd.github.v3+json'
     else:
-        _headers['Accept'] = f'application/vnd.github.{preview}+json'
-    return _headers
+       h['Accept'] = f'application/vnd.github.{preview}+json'
+
+    return h
 
 
 def cleanup_json_dict(d):
@@ -98,11 +121,11 @@ def cleanup_json_dict(d):
             del d[k]
         elif isinstance(v, enum.Enum):
             d[k] = v.value
-        elif isinstance(v, datetime):
-            d[k] = fromisoformat(v)
+        elif isinstance(v, dt.datetime):
+            d[k] = toisoformat(v)
 
 
-def send_github_json(url, mode, json_data=None, preview=None):
+def send_github_json(url, mode, json_data=None, preview=None, slug=None, access_token=None):
     assert mode in ('GET', 'POST', 'PATCH', 'DELETE'), f"Unknown mode {mode}"
 
     if dataclasses.is_dataclass(json_data):
@@ -111,7 +134,7 @@ def send_github_json(url, mode, json_data=None, preview=None):
 
     kw = {
         'url': url,
-        'headers': github_headers(preview=preview),
+        'headers': github_headers(preview=preview, slug=slug, access_token=access_token),
     }
     if mode == 'POST':
         f = requests.post
@@ -129,14 +152,32 @@ def send_github_json(url, mode, json_data=None, preview=None):
         f = requests.delete
         return f(**kw).json()
 
-    json_data = f(**kw).json()
-    return json_data
+    print(url, mode, json_data, slug)
+    r = f(**kw)
+    if r.status_code in (204,):
+        return (r.status_code, r.reason)
+    try:
+        json_data = r.json()
+        return json_data
+    except json.decoder.JSONDecodeError:
+        return (r.status_code, r.text)
 
 
 def get_github_json(url, *args, **kw):
+    jwt = kw.pop('jwt', False)
     preview = kw.pop('preview', None)
+    slug = kw.get('slug', None)
+    access_token = kw.get('access_token', None)
+
     full_url = url.format(*args, **kw)
-    return send_github_json(full_url, 'GET', preview=preview)
+    if jwt:
+        from . import app_token
+        return app_token.get_github_json_jwt(full_url)
+    return send_github_json(
+        full_url, 'GET',
+        preview=preview,
+        slug=slug,
+        access_token=access_token)
 
 
 if __name__ == "__main__":

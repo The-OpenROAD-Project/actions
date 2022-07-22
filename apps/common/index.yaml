@@ -1,0 +1,6 @@
+indexes:
+- kind: Token
+  properties:
+  - name: login
+  - name: created
+    direction: desc
