@@ -60,7 +60,7 @@ def send_pr():
             "title": event_json["pull_request"]["title"],
             "body": event_json["pull_request"]["body"],
             "maintainer_can_modify": True,
-            "draft": True,
+            "draft": False,
         }
         r = send_github_json(pr_api_url, "POST", create_pr_json)
         print(f"::group::Created pull request from {staging.slug} {staging.branch} to {upstream.slug}")
