@@ -67,22 +67,36 @@ def send_pr():
         pprint.pprint(r)
         print("::endgroup::")
         print()
-        prs_json.append(r)
+        new_pr_number = r.get("number") # Get the PR number directly from the response
+        original_pr_author = event_json["pull_request"]["user"]["login"]
+        assign_user_to_pr(upstream.slug, new_pr_number, original_pr_author)
     else:
         print()
         print("Pull request already existed!")
         print()
 
-    upstream.pr = prs_json[-1]["number"]
-
     print()
-    print(" Private PR:", private.pr, private.pr_url)
+    print("Private PR:", private.pr, private.pr_url)
     print("Upstream PR:", upstream.pr, upstream.pr_url)
 
     print("::set-output name=pr::"+str(upstream.pr))
 
     return
 
+def assign_user_to_pr(repo_slug, pr_number, username):
+    """Assigns a user to a pull request."""
+    assignees_url = f"https://api.github.com/repos/{repo_slug}/issues/{pr_number}/assignees"
+
+    assignees_data = {
+        "assignees": [username]
+    }
+    try:
+        r = send_github_json(assignees_url, "POST", assignees_data)
+        print(f"::group::Assigned {username} to PR #{pr_number} in {repo_slug}")
+        pprint.pprint(r)
+        print("::endgroup::")
+    except Exception as e:
+        print(f"::error::Failed to assign {username} to PR #{pr_number}: {e}")
 
 if __name__ == "__main__":
     sys.exit(send_pr())
