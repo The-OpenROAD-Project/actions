@@ -67,6 +67,8 @@ def send_pr():
         pprint.pprint(r)
         print("::endgroup::")
         print()
+        prs_json.append(r)
+
         new_pr_number = r.get("number") # Get the PR number directly from the response
         original_pr_author = event_json["pull_request"]["user"]["login"]
         assign_user_to_pr(upstream.slug, new_pr_number, original_pr_author)
@@ -74,6 +76,8 @@ def send_pr():
         print()
         print("Pull request already existed!")
         print()
+
+    upstream.pr = new_pr_number
 
     print()
     print("Private PR:", private.pr, private.pr_url)
