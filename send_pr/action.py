@@ -77,7 +77,7 @@ def send_pr():
         print("Pull request already existed!")
         print()
 
-    upstream.pr = new_pr_number
+    upstream.pr = prs_json[-1]["number"]
 
     print()
     print("Private PR:", private.pr, private.pr_url)
