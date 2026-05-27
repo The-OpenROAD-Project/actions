@@ -1,5 +1,11 @@
 name: Create a new pull request.
 
+inputs:
+  draft:
+    description: Open the pull request as a draft.
+    required: false
+    default: 'false'
+
 outputs:
   pr:
     description: Pull request ID number.
@@ -15,4 +21,5 @@ runs:
     shell: bash
     env:
         GITHUB_TOKEN: ${{ github.token }}
+        INPUT_DRAFT: ${{ inputs.draft }}
     run: $GITHUB_ACTION_PATH/action.py
