@@ -54,13 +54,15 @@ def send_pr():
         # Need to create a new pull request.
         pr_api_url = f'https://api.github.com/repos/{upstream.slug}/pulls'
 
+        draft = os.environ.get("INPUT_DRAFT", "false").strip().lower() == "true"
+
         create_pr_json = {
             "base": upstream.branch,
             "head": f"{staging.owner}:{staging.branch}",
             "title": event_json["pull_request"]["title"],
             "body": event_json["pull_request"]["body"],
             "maintainer_can_modify": True,
-            "draft": False,
+            "draft": draft,
         }
         r = send_github_json(pr_api_url, "POST", create_pr_json)
         print(f"::group::Created pull request from {staging.slug} {staging.branch} to {upstream.slug}")
