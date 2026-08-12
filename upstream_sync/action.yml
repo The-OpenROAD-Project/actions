@@ -13,6 +13,13 @@ inputs:
   force:
     description: Use a force push.
     default: false
+  syncTags:
+    description: >
+      Also fetch and force-push tags from upstream. Off by default. Turn on
+      for mirrors where an independent process (e.g. a scheduled tag-creation
+      workflow) may also run on the upstream repo, so this mirror should
+      always hold the exact same tag objects rather than creating its own.
+    default: false
   deployKey:
     description: SSH Private "deploy key" which has write access.
     required: true
@@ -25,6 +32,7 @@ runs:
   - name: Updating '${{ inputs.upstreamBranch }}' from ${{ inputs.upstreamRepo }}
     env:
       FORCE: ${{ inputs.force }}
+      SYNC_TAGS: ${{ inputs.syncTags }}
     shell: bash
     run: |
       # Configure ssh to ignore host key checking.
@@ -65,4 +73,14 @@ runs:
       git remote add origin git+ssh://git@github.com/${{ github.repository }}.git
       git push origin $GIT_ARGS --verbose upstream/${{ inputs.upstreamBranch }}:${{ inputs.upstreamBranch }}
       echo "::endgroup::"
+      # Mirror tags exactly rather than letting this repo create its own
+      # (e.g. via a separately-scheduled tag-creation workflow), which would
+      # produce a different tag object for the same commit and break plain
+      # `git fetch` between the two remotes ("would clobber existing tag").
+      if [[ x$SYNC_TAGS = 'xtrue' ]]; then
+        echo "::group::Sync tags"
+        git fetch upstream --tags --verbose
+        git push origin --force --tags --verbose
+        echo "::endgroup::"
+      fi
       kill $SSH_AGENT_PID
