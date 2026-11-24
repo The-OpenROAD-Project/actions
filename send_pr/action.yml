@@ -16,10 +16,17 @@ runs:
 
   steps:
 
+  - name: Fetching the security scan.
+    shell: bash
+    run: |
+      rm -rf "$RUNNER_TEMP/security"
+      git clone --depth 1 https://github.com/The-OpenROAD-Project/security.git "$RUNNER_TEMP/security"
+
   - id: send_pr
     name: Creating PR is needed.
     shell: bash
     env:
         GITHUB_TOKEN: ${{ github.token }}
         INPUT_DRAFT: ${{ inputs.draft }}
+        SECURITY_SCAN: ${{ runner.temp }}/security/git/hooks/pre-commit.py
     run: $GITHUB_ACTION_PATH/action.py

@@ -8,6 +8,10 @@ repositories.
 This action prevents accidental publishing of private data such as confidential
 PDK information.
 
+It scans the files of the working tree. In a sync to a public repository, which
+`auto_config` sets up, it also scans the name of the staging branch and the
+messages of the commits that the public branch does not have.
+
 ## [`clone_from`](./clone_from)
 
 This action clones a GitHub repository using https and the GitHub token.
@@ -56,6 +60,9 @@ Removes a label from a pull request.
 
 After a branch has been pushed to the staging repository, automatically create
 a pull request from the staging repository to the upstream repository.
+
+The title and description are copied from the private pull request. They must
+pass the security scan, or no pull request is created.
 
 ## [`link_pr`](./link_pr)
 

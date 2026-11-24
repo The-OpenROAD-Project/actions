@@ -23,6 +23,7 @@ import json
 import os
 import pathlib
 import pprint
+import subprocess
 import sys
 
 
@@ -32,6 +33,26 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 import github_api
 from github_api import get_github_json, send_github_json
 from github_api import env as genv
+
+
+def scan_published(name, text):
+    """Runs the security scan on text, which the pull request will publish as
+    its name (title or description). Returns whether the scan passed."""
+    # Keep the scan's output after what has been printed so far.
+    sys.stdout.flush()
+    # The scan is not given the tokens in the environment.
+    r = subprocess.run([os.environ["SECURITY_SCAN"], "--text", "-"],
+                       input=text.encode("utf-8", errors="replace"),
+                       env={"PATH": os.environ.get("PATH", os.defpath)})
+    # The scan exits with 1 for blocked content.
+    if r.returncode == 1:
+        print(f"::error::The pull request {name} has content the security scan"
+              " blocks. Edit it on the private pull request and apply the"
+              " label again.")
+    elif r.returncode != 0:
+        print(f"::error::The security scan of the pull request {name} did"
+              f" not run (exit status {r.returncode}).")
+    return r.returncode == 0
 
 
 def send_pr():
@@ -55,6 +76,16 @@ def send_pr():
         pr_api_url = f'https://api.github.com/repos/{upstream.slug}/pulls'
 
         draft = os.environ.get("INPUT_DRAFT", "false").strip().lower() == "true"
+
+        # Scan both so one run reports both. The body is null when the
+        # description is empty.
+        passed = [
+            scan_published("title", event_json["pull_request"]["title"]),
+            scan_published("description",
+                           event_json["pull_request"]["body"] or ""),
+        ]
+        if not all(passed):
+            sys.exit(1)
 
         create_pr_json = {
             "base": upstream.branch,
