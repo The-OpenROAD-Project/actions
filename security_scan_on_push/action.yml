@@ -11,3 +11,21 @@ runs:
           shell: bash
         - run: ../security/git/hooks/pre-commit.py --local
           shell: bash
+        # auto_config sets these variables in a sync to a public repository.
+        # The push publishes the staging branch's name and the commits that
+        # the public branch does not have.
+        - name: Scan commit messages and branch name
+          shell: bash
+          run: |
+            if [[ -z "${UPSTREAM_BRANCH:-}" ]]; then
+              echo "Not a sync to a public repository: nothing more to scan"
+              exit 0
+            fi
+            export GIT_TERMINAL_PROMPT=0
+            git fetch --no-tags \
+              "https://github.com/$UPSTREAM_OWNER/$UPSTREAM_REPO.git" \
+              "refs/heads/$UPSTREAM_BRANCH"
+            echo "Scanning the messages of $(git rev-list --count FETCH_HEAD..HEAD) commits"
+            ../security/git/hooks/pre-commit.py --messages FETCH_HEAD..HEAD
+            echo "Scanning the branch name $STAGING_BRANCH"
+            printf '%s\n' "$STAGING_BRANCH" | ../security/git/hooks/pre-commit.py --text -
